@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自适应图标背景用渐变，和侧栏 Logo / 桌面图标同一套色 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+  <gradient
+    android:startColor="#FFD84A"
+    android:centerColor="#FFB43A"
+    android:endColor="#FF8A00"
+    android:angle="315"
+    android:type="linear" />
+</shape>

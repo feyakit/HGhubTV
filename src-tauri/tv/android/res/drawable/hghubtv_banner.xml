@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV launcher banner: code-drawn paths remain sharp at any launcher scale. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:fillColor="#06090F" android:pathData="M0,0H320V180H0Z" />
+    <path android:fillColor="#16110A" android:pathData="M0,139C73,103 111,179 194,124S281,89 320,113V180H0Z" />
+    <path android:fillColor="#FFD84A" android:pathData="M134,24H186Q204,24 204,42V94Q204,112 186,112H134Q116,112 116,94V42Q116,24 134,24Z" />
+    <path android:fillColor="#14141C" android:pathData="M151,50L180.5,68L151,86Z" />
+    <!-- HGhubTV wordmark, drawn as paths rather than device-dependent text. -->
+    <group android:translateX="84" android:translateY="134">
+        <path android:fillColor="#00000000" android:strokeColor="#F2F4F7" android:strokeWidth="2.6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M0,0V20M0,10H13M13,0V20M36,3C33,-1 21,-1 21,10S33,21 36,17V11H29M44,0V20M44,12C44,6 57,6 57,12V20M65,8V15C65,22 78,22 78,15V8M86,0V20M86,12C86,6 99,6 99,14S86,22 86,16" />
+        <path android:fillColor="#00000000" android:strokeColor="#FFD24A" android:strokeWidth="2.6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M108,0H124M116,0V20M134,0L142,20L150,0" />
+    </group>
+</vector>

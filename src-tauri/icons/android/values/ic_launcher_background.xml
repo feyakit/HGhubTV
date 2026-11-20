@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- 与 src/icons.tsx 的 Logo 渐变一致：左上 #ffd84a → 右下 #ff8a00 -->
+  <color name="ic_launcher_background">#FFD84A</color>
+</resources>

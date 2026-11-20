@@ -1,0 +1,272 @@
+name: Build Android
+
+# 两种模式，同一个文件：
+#   1) push main  → 开发包（android-preview）：临时签名，2 个 ABI，固定链接覆盖
+#   2) push v* tag → 正式包（挂到该 tag 的 Release）：必须仓库 secrets 签名，3 个 ABI
+# 手机版与 TV 版各出一套（TV 用 VITE_TV=1 + android-tv-patch.py 改包名）
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+    # 纯文档提交不触发 25 分钟的 APK 构建
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+    inputs:
+      tv:
+        description: 同时构建 Android TV 版
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: APK (release)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # 固定 JDK 17。ubuntu-latest 的默认 JDK 会随镜像升级（2026-11 升到 25 之后
+      # Gradle 8.14 直接报 "Unsupported class file major version 69"，构建脚本连
+      # 语义分析都过不去）。Tauri Android 官方也是按 17 验证的。
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # ubuntu runner 自带 Android SDK；不走 android-actions/setup-android（license 交互会卡住）
+      - name: 准备 Android SDK / NDK
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses >/dev/null || true
+          "$SDKM" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+          echo "NDK_HOME=$SDK/ndk/28.2.13676358" >> "$GITHUB_ENV"
+          ls "$SDK/ndk"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: android-apk
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 初始化 Android 工程
+        run: pnpm tauri android init --ci
+
+      # 隐藏 Android 系统状态栏/导航栏。tauri.conf.json 的 fullscreen 在 Android
+      # 上不生效（实测配置进包了但系统栏照旧占 36px+90px），只能改原生 MainActivity。
+      # gen/android 是上一步 init 生成的，所以补丁必须插在 init 与 build 之间。
+      - name: 注入沉浸式全屏
+        run: python3 scripts/patch-android-immersive.py
+
+
+      # dev 包的 versionName 保持干净版本号（1.3.4），不拼 -dev.<sha>。
+      # 原因：versionName 里带 dev 后缀时，手机厂商的安全引擎会把包判成
+      # 「非官方测试版」，安装时弹「中高风险 / 未上架应用」提示（实测过，
+      # 同签名的 1.3.3 不弹、1.3.4-dev.xxx 弹）。commit 只放进 Release 标题。
+      # 文件名继续用干净的 BASE，否则免登录直链每次构建都会变。
+      - name: 注入版本号
+        run: |
+          set -euo pipefail
+          BASE="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          SHA="$(git rev-parse --short HEAD)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # 正式版：版本号就是 tag 去掉 v，产物挂到该 tag 的 Release
+            DEV="${GITHUB_REF_NAME#v}"
+            DEV_TITLE="v${DEV}"
+            echo "RELEASE_MODE=1" >> "$GITHUB_ENV"
+            echo "PUBLISH_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            # 开发包：APK 内部版本就是 BASE，dev 后缀只进 Release 标题
+            DEV="${BASE}"
+            DEV_TITLE="${BASE}-dev.${SHA}"
+            echo "RELEASE_MODE=0" >> "$GITHUB_ENV"
+            echo "PUBLISH_TAG=android-preview" >> "$GITHUB_ENV"
+          fi
+          # set-version.mjs 同时写 package.json / tauri.conf.json（含 Android
+          # versionCode = major*1e6+minor*1e3+patch）/ Cargo.toml，避免三处漂移
+          node scripts/set-version.mjs "$DEV"
+          echo "BASE_VERSION=${BASE}" >> "$GITHUB_ENV"
+          echo "DEV_VERSION=${DEV}" >> "$GITHUB_ENV"
+          echo "DEV_TITLE=${DEV_TITLE}" >> "$GITHUB_ENV"
+          grep '"version"' src-tauri/tauri.conf.json
+
+      # 优先用仓库里那套固定签名密钥（与 release.yml 相同），这样产出的包能覆盖升级；
+      # secrets 没配时退化成每次现生成的临时密钥，包能装但不能跨构建升级。
+      - name: 准备签名密钥
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
+          SECRET_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SECRET_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SECRET_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_MODE}" == "1" && -z "${KEYSTORE_BASE64:-}" ]]; then
+            echo "::error::正式版必须配置 ANDROID_KEY_BASE64 / ANDROID_KEY_ALIAS 等 secrets"; exit 1
+          fi
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            KEYSTORE="$RUNNER_TEMP/release.keystore"
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE"
+            echo "KEY_ALIAS=${SECRET_ALIAS}" >> "$GITHUB_ENV"
+            echo "STORE_PASSWORD=${SECRET_STORE_PASSWORD}" >> "$GITHUB_ENV"
+            echo "KEY_PASSWORD=${SECRET_KEY_PASSWORD}" >> "$GITHUB_ENV"
+            echo "SIGNING_NOTE=仓库固定密钥，可覆盖升级同一签名的版本" >> "$GITHUB_ENV"
+            echo "[sign] 使用仓库 secrets 中的正式签名密钥"
+          else
+            KEYSTORE="$RUNNER_TEMP/hguotok-test.keystore"
+            rm -f "$KEYSTORE"
+            keytool -genkeypair -v -keystore "$KEYSTORE" -storetype PKCS12 \
+              -alias hguotok -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass hguotok -keypass hguotok \
+              -dname "CN=HGhubTV Test Build, O=HGhubTV, C=CN"
+            echo "KEY_ALIAS=hguotok" >> "$GITHUB_ENV"
+            echo "STORE_PASSWORD=hguotok" >> "$GITHUB_ENV"
+            echo "KEY_PASSWORD=hguotok" >> "$GITHUB_ENV"
+            echo "SIGNING_NOTE=临时测试密钥，每次构建更换，升级前需先卸载" >> "$GITHUB_ENV"
+            echo "[sign] 未配置 ANDROID_KEY_BASE64，退化为临时密钥"
+          fi
+          echo "KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
+
+
+      # 这个仓库只出 TV 包。TV 版用独立配置 tauri.tv.conf.json（选择 src/tv 前端、
+      # 包名 com.hghubtv.app），Tauri 只认 tauri.android.conf.json 这个名字，所以先复制。
+      # leanback 声明 / TV banner / 横屏锁定由 beforeBuildCommand 里的
+      # scripts/patch-android-tv.mjs 自动打补丁，不需要额外的 patch 步骤。
+      - name: 构建并签名 TV 版 APK（release）
+        run: |
+          set -euo pipefail
+          VERSION="${BASE_VERSION}"          # 文件名用干净版本号，直链保持稳定
+          SHA="$(git rev-parse --short HEAD)"
+          BT="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
+          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/$BT/apksigner"
+          mkdir -p artifacts
+          cp src-tauri/tauri.tv.conf.json src-tauri/tauri.android.conf.json
+          pnpm tauri android init --ci
+          # TV 版的原生安全视口由 src-tauri/tv/android/MainActivity.kt 处理，
+          # 这里不再注入 hide(systemBars())，否则模板校验会失败。
+          # 前端 dist 是编译期嵌进 Rust 二进制的，cargo 不跟踪 dist 的内容变化。
+          # 不碰一下 build.rs，swatinem/rust-cache 会把上一次的 .so 原样复用 ——
+          # 表现是 APK 字节完全相同，装上去跑的还是旧前端（实测两次构建 .so
+          # md5 一模一样）。touch 之后 build.rs 重跑、crate 重编、dist 重新嵌入。
+          # 开发包也出 x86_64：instabox 那台云安卓机是 x86_64，只有它能跑 UI 断言；
+          # arm64 包在翻译层里一跑遥控器交互就会把 libndk_translation 打崩。
+          TARGETS="aarch64 armv7 x86_64"
+          # tauri 的 generate_context! 在 crate 编译期把 ../dist 整个嵌进 lib。
+          # tauri-build 没给 dist 生成 rerun-if-changed，所以 cargo 认为 crate
+          # 没变、rust-cache 又把旧产物还原回来 —— 实测两次构建 .so 的 md5 一字不差
+          # （66d9408554b0），前端改动永远进不了包。这里只删本 crate 的指纹和产物，
+          # 依赖缓存照旧命中，多花的时间只有重新编译这一个 crate。
+          rm -rf src-tauri/target/*/release/.fingerprint/hghubx-* \
+                 src-tauri/target/release/.fingerprint/hghubx-* \
+                 src-tauri/target/*/release/deps/libhghubx* \
+                 src-tauri/target/*/release/libhghubx* 2>/dev/null || true
+          # TV 前端由 tauri.tv.conf.json 的 beforeBuildCommand 指定
+          # （node scripts/build-android-tv.mjs，内部设 VITE_APP_EDITION=tv）
+          VITE_APP_EDITION=tv pnpm tauri android build --apk --split-per-abi --target $TARGETS
+          n=0
+          for f in $(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | sort); do
+            abi="$(basename "$(dirname "$(dirname "$f")")")"
+            out="artifacts/HGhubTV_${VERSION}_${SHA}_${abi}.apk"
+            # 必须显式开 v1：minSdk 24+ 时 apksigner 默认只写 v2/v3，
+            # TCL 电视 / 部分投影仪的安装校验只认 JAR 签名，缺 v1 直接
+            # INSTALL_FAILED_VERIFICATION_FAILURE（实测 TCL MT5879）。
+            "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass "pass:$STORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" \
+              --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+              --v4-signing-enabled false --out "$out" "$f"
+            "$APKSIGNER" verify --print-certs "$out" | head -2
+            n=$((n+1))
+          done
+          ls -lh artifacts
+          if [ "$n" -eq 0 ]; then echo "::error::TV 版没有生成任何 APK"; exit 1; fi
+
+      # Artifacts 需要登录才能下载；release 资产是免登录直链。
+      # 固定文件名 + --clobber，保证同一个 tag 下永远只有 4 个文件，不会越堆越多。
+      - name: 发布到 prerelease（免登录直链）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${PUBLISH_TAG}"
+          VERSION="${DEV_VERSION}"           # APK 内部版本（正式版=tag，开发包=BASE）
+          TITLE_VERSION="${DEV_TITLE}"       # 标题里显示带 commit 的版本
+          BASE="${BASE_VERSION}"
+          SHA="$(git rev-parse --short HEAD)"
+          mkdir -p stable
+          for f in artifacts/*.apk; do
+            base="$(basename "$f")"
+            # HGhubTV_1.3.2_64d16d9_phone_aarch64.apk -> HGhubTV_1.3.2_phone_aarch64.apk
+            stable_name="$(printf '%s' "$base" | sed -E 's/_[0-9a-f]{7,40}_/ /' | awk '{print $1"_"$2}')"
+            cp "$f" "stable/$stable_name"
+          done
+          ls -lh stable
+          if [[ "$RELEASE_MODE" == "1" ]]; then
+            TITLE="HGhubTV v${VERSION}"
+            HEADING="## HGhubTV v${VERSION}"
+          else
+            TITLE="开发测试包 · ${TITLE_VERSION}"
+            HEADING="## HGhubTV 开发测试包（release）"
+          fi
+          NOTES="$(printf '%s\n' \
+            "${HEADING}" \
+            "" \
+            "- 分支：\`${GITHUB_REF_NAME}\` @ \`${SHA}\`" \
+            "- APK 内部版本：\`${BASE}\`（versionName 不带 dev 后缀，否则厂商安全引擎会误判成测试版）；提交 \`${SHA}\`" \
+            "- 文件名用 \`${BASE}\`：直链固定不变　构建：$(date -u '+%Y-%m-%d %H:%M UTC')" \
+            "- 包名 \`com.hghubtv.app\`（Android TV，leanback 启动器）" \
+            "- **release 构建**；签名：${SIGNING_NOTE}" \
+            "- 电视/盒子优先装 armv7，新设备（如 Google TV）装 aarch64" \
+            "- 本 release 每次推送自动覆盖，只保留最新一次构建")"
+          # 正式 tag 直接发 Latest；开发包保持 prerelease，避免把正式版从 latest 上挤下来。
+          RELEASE_FLAG="--prerelease"
+          [[ "$RELEASE_MODE" == "1" ]] && RELEASE_FLAG="--latest"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # 开发包文件名带版本号，不同版本永远互相覆盖不到（3.0.1/3.1.0/3.1.1
+            # 各三个一路堆着）。上传前先清空，只保留最新一组。
+            if [[ "$RELEASE_MODE" != "1" ]]; then
+              gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' |
+                while read -r asset; do
+                  [ -n "$asset" ] && gh release delete-asset "$TAG" "$asset" -R "$GITHUB_REPOSITORY"
+                done
+            fi
+            gh release upload "$TAG" stable/*.apk --clobber
+            gh release edit "$TAG" --title "${TITLE}" --notes "$NOTES" $RELEASE_FLAG
+          else
+            gh release create "$TAG" stable/*.apk \
+              --title "${TITLE}" \
+              --notes "$NOTES" $RELEASE_FLAG
+          fi
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name)  \(.size)"'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-debug-${{ github.sha }}
+          path: artifacts/*.apk
+          retention-days: 30
+          if-no-files-found: error

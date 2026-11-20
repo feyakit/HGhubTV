@@ -1,0 +1,52 @@
+/* ============ 搜索页：方案 A 影院极简风（搜索框 + 热词历史 + 按需键盘） ============ */
+.tv-search{padding:.2rem 0}
+.tv-search-head{display:flex;gap:.75rem;margin-bottom:1.4rem}
+.tv-search-field{flex:1;height:2.6rem;padding:0 1.15rem;border-radius:999px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+  font-size:1rem;color:#fff;text-align:left;display:flex;align-items:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-search-field.is-empty{color:rgba(245,247,250,.48)}
+.tv-search-field:focus{background:rgba(255,255,255,.14);border-color:#fff;
+  box-shadow:0 0 0 .14rem rgba(255,255,255,.35);color:#fff;transform:none;outline:none}
+.tv-search-submit{width:5.8rem;height:2.6rem;border-radius:999px;font-size:.95rem;font-weight:700;
+  background:#fff;color:#090a0f;border:0}
+.tv-search-submit:focus{background:#fff;color:#090a0f;transform:scale(1.04);outline:.15rem solid #fff;outline-offset:.16rem}
+.tv-search-heading{display:flex;align-items:center;gap:.6rem;font-size:.86rem;color:var(--tv-muted);
+  font-weight:600;margin:.2rem 0 .55rem}
+.tv-search-clear{margin-left:auto;font-size:.82rem;color:rgba(245,247,250,.62);background:none;border:0;
+  min-height:0;padding:.2rem .6rem;border-radius:999px}
+.tv-search-clear:focus{color:#090a0f;background:#fff;transform:none;outline:.14rem solid #fff}
+.tv-search-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin-bottom:1.3rem}
+.tv-search-chips button{height:2.1rem;padding:0 .95rem;border-radius:999px;font-size:.86rem;font-weight:600;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(245,247,250,.84);min-height:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-search-chips button:focus{background:#fff;color:#090a0f;border-color:#fff;transform:scale(1.05);outline:.14rem solid #fff}
+
+/* 键盘：三行各 10 列，遥控器上下键按固定列数走 */
+.tv-search-keypad{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:.32rem;
+  max-width:21rem;margin:0}
+.tv-search-body.is-typing{display:flex;gap:1.5rem;align-items:flex-start}
+.tv-search-body.is-typing .tv-search-keypad{flex:0 0 21rem}
+.tv-search-body.is-typing .tv-search-detail{flex:1;min-width:0}
+.tv-search-detail{min-width:0}
+.tv-search-keypad button{height:2rem;border-radius:.45rem;font-size:.9rem;font-weight:600;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:rgba(245,247,250,.88);
+  display:flex;align-items:center;justify-content:center;min-height:0;padding:0}
+.tv-search-keypad button:focus{background:#fff;color:#090a0f;border-color:#fff;transform:scale(1.08);outline:.14rem solid #fff}
+.tv-search-keypad .is-action{font-size:.78rem;color:var(--tv-muted)}
+.tv-search-keypad .is-done{background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.28)}
+.tv-search-keypad .is-space{grid-column:span 1}
+.tv-search-results{min-width:0}
+.tv-search-results .tv-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tv-search-results .tv-card:not(.tv-card-wide) .tv-card-art{height:11.6rem}
+.tv-search-body.is-typing .tv-search-results .tv-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem .9rem}
+.tv-search-body.is-typing .tv-search-results .tv-card:not(.tv-card-wide) .tv-card-art{height:9.2rem}
+.tv-search-error{display:flex;align-items:center;gap:.6rem;color:#ff9d9d;font-size:.88rem;margin-bottom:.8rem}
+.tv-search-error button{min-height:1.9rem;font-size:.82rem;padding:0 .85rem;border-radius:999px}
+.tv-search-empty{font-size:.92rem;color:var(--tv-muted);display:flex;align-items:center;gap:.75rem;padding:.6rem 0}
+.tv-search-empty button{min-height:1.9rem;font-size:.82rem;padding:0 .85rem;border-radius:999px}
+@media (max-height:820px){
+  .tv-search-head{margin-bottom:1.1rem}
+  .tv-search-keypad button{height:1.8rem}
+  .tv-search-chips{margin-bottom:1rem}
+}

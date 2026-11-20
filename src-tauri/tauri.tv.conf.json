@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HGhubTV",
+  "identifier": "com.hghubtv.app",
+  "build": {
+    "beforeDevCommand": "node scripts/build-android-tv.mjs --dev",
+    "beforeBuildCommand": "node scripts/build-android-tv.mjs"
+  }
+}

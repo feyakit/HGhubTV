@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HGhubTV",
+  "version": "3.1.4",
+  "identifier": "com.hghubtv.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build && node scripts/generate-ios-icons.mjs && node scripts/sync-android-icons.mjs && node scripts/sync-ios-icons.mjs && node scripts/patch-android-splash.mjs",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "HGhubX",
+        "width": 1200,
+        "height": 780,
+        "minWidth": 900,
+        "minHeight": 620,
+        "decorations": false,
+        "backgroundColor": "#071218",
+        "transparent": false,
+        "resizable": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: hg: http://hg.localhost https://hg.localhost; media-src 'self' blob: hg: http://hg.localhost https://hg.localhost; connect-src ipc: http://ipc.localhost https://ipc.localhost hg: http://hg.localhost https://hg.localhost; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+      "devCsp": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: hg: http://hg.localhost https://hg.localhost; media-src 'self' blob: hg: http://hg.localhost https://hg.localhost; connect-src 'self' ws: wss: ipc: http://ipc.localhost https://ipc.localhost hg: http://hg.localhost https://hg.localhost; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ],
+    "android": {
+      "minSdkVersion": 24,
+      "versionCode": 3001004
+    }
+  }
+}

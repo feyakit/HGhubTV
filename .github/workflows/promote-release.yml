@@ -1,0 +1,45 @@
+name: Promote Release
+
+# 把已发布、验证通过的预发布原地转成正式版：
+# 不改 tag、不改 Release 名、不改下载链接，只把 prerelease 标记去掉并设为 latest。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要转正的 tag（例如 v1.3.4）'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promote-${{ inputs.tag }}
+
+jobs:
+  promote:
+    name: Promote to stable
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查当前状态
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if ! gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::找不到 tag/Release：$TAG"
+            exit 1
+          fi
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets \
+            --jq '"当前：\(.tagName)  prerelease=\(.isPrerelease)  产物 \(.assets | length) 个"'
+
+      - name: 转正式
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --prerelease=false --latest
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets \
+            --jq '"已转正：\(.tagName)  prerelease=\(.isPrerelease)  产物 \(.assets | length) 个"'
