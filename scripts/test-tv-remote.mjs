@@ -191,6 +191,22 @@ try {
     assert.ok(/^detail:video:1:part:/.test(after || ""), `从播放按钮按「下」应进选集区，实际 ${after}`);
     return { initialFocus: initial, afterDown: after };
   });
+  /* 国内电视惯例：内容区按返回先把焦点送回导航，导航上再按才逐层退出。
+     少了第一层，用户在货架深处按返回会直接看到「再按一次退出」，想切页得一路按上。 */
+  await scenario("back-returns-focus-to-navigation", async () => {
+    const { page } = await open();
+    const card = page.locator('[data-tv-region="home-推荐"] [data-tv-focus="video:1"]');
+    await card.waitFor(); await card.focus();
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+    const afterContent = await activeKey(page);
+    assert.equal(afterContent, "nav-home", `首页内容区按返回应回导航，实际 ${afterContent}`);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    const notice = await page.locator(".tv-notice").textContent().catch(() => "");
+    assert.ok(/退出/.test(notice || ""), `首页导航上按返回应提示退出，实际 ${notice}`);
+    return { afterContent, notice };
+  });
   /* 相关推荐：附录在选集区下方，遥控器继续按「下」要能落到上面，点开是新的详情。 */
   await scenario("detail-related-row", async () => {
     const { page } = await open();

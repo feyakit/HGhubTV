@@ -61,6 +61,11 @@ export default function TvApp(){
   const back=()=>{
     rememberFocus(page);
     if(stack.length){clearExit();setStack(s=>s.slice(0,-1));return;}
+    /* 国内电视的返回键是分层的：内容区 → 焦点回导航 → 非首页回首页 → 首页提示退出。
+       少了「内容区 → 导航」这一层，用户在货架深处按返回会直接看到「再按一次退出」，
+       想切页还得一路按「上」翻回顶部。 */
+    const onNav=!!(document.activeElement as HTMLElement|null)?.closest('[data-tv-region="navigation"]');
+    if(!onNav){clearExit();focusElement(document.querySelector<HTMLElement>(`[data-tv-focus="nav-${tab}"]`));return;}
     if(tab!=="home"){clearExit();setTab("home");return;}
     if(exitArmed){clearExit();void invoke("plugin:app|exit",{code:0});return;}
     setExitArmed(true);
