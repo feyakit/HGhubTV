@@ -1,7 +1,7 @@
 {
   "name": "hghubtv",
   "private": true,
-  "version": "3.1.8",
+  "version": "3.1.9",
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
