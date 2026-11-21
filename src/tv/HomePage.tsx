@@ -24,9 +24,22 @@ export default function HomePage({ onOpen, onPlay, active = true }: { onOpen: (c
         ]);
         if (!current) return;
         const next: { title: string; items: TvContent[] }[] = [];
-        if (recRes.status === "fulfilled") next.push({ title: "推荐", items: recRes.value.items.map(videoCard) });
-        if (popRes.status === "fulfilled") next.push({ title: "热门", items: popRes.value.items.slice(0, 15).map(rankCard) });
-        if (latRes.status === "fulfilled") next.push({ title: "新更新", items: latRes.value.items.map(videoCard) });
+        /* 三个接口各自按热度/更新时间排序，同一部剧经常同时命中多个货架——
+           一屏上看到同一张海报两三次。从左到右依次认领，后面重复的直接丢掉；
+           某个货架被清空就整行不渲染，不留空行。 */
+        const seen = new Set<string>();
+        const push = (title: string, items: TvContent[]) => {
+          const fresh = items.filter(item => {
+            const key = contentKey(item);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          if (fresh.length) next.push({ title, items: fresh });
+        };
+        if (recRes.status === "fulfilled") push("推荐", recRes.value.items.map(videoCard));
+        if (popRes.status === "fulfilled") push("热门", popRes.value.items.slice(0, 15).map(rankCard));
+        if (latRes.status === "fulfilled") push("新更新", latRes.value.items.map(videoCard));
         if (!next.length) {
           const reason = recRes.status === "rejected" ? recRes.reason : popRes.status === "rejected" ? popRes.reason : latRes.status === "rejected" ? latRes.reason : "加载失败";
           setError(String(reason));

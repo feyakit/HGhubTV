@@ -38,7 +38,9 @@ export default function LibraryPage({ onOpen, onNavigate }: {
     return () => { alive = false; };
   }, []);
 
-  const showHot = library.length < 5 && hot.length > 0;
+  /* 片库里已有的别再推一遍：刚看完的剧出现在「大家都在看」里很怪，也显得重复。 */
+  const hotFresh = hot.filter(content => !library.some(entry => entry.key === contentKey(content)));
+  const showHot = library.length < 5 && hotFresh.length > 0;
 
   return <>
     <TvAmbient src={items[0]?.content.cover} />
@@ -65,7 +67,7 @@ export default function LibraryPage({ onOpen, onNavigate }: {
     {showHot && <section className="tv-shelf tv-lib-hot">
       <h2>大家都在看</h2>
       <div className="tv-shelf-track" data-tv-region="library-hot" data-tv-scroll-id="library-hot">
-        {hot.map(content => <TvCard key={contentKey(content)} content={content} onOpen={onOpen} />)}
+        {hotFresh.map(content => <TvCard key={contentKey(content)} content={content} onOpen={onOpen} />)}
       </div>
     </section>}
 
