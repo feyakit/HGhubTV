@@ -54,10 +54,10 @@ button:focus-visible{outline-color:var(--tv-focus)}
 /* ============ 页面级氛围层（封面取色 + 柔光渐变） ============ */
 .tv-ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .tv-ambient-image{position:absolute;inset:-14%;background-size:cover;background-position:center 24%;
-  filter:blur(28px) saturate(1.3) brightness(.36);opacity:.68;transform:scale(1.12);
+  filter:blur(28px) saturate(1.3) brightness(.36);opacity:.68;
   -webkit-mask-image:radial-gradient(ellipse 84% 74% at 72% 20%,#000 10%,rgba(0,0,0,.45) 48%,transparent 78%);
   mask-image:radial-gradient(ellipse 84% 74% at 72% 20%,#000 10%,rgba(0,0,0,.45) 48%,transparent 78%);
-  transform-origin:center}
+  transition:background-image .45s ease}
 .tv-ambient-color{position:absolute;inset:0;
   background:radial-gradient(ellipse 68% 58% at 72% 18%,rgba(120,90,62,.28) 0%,rgba(28,36,54,.2) 48%,transparent 78%);
   transition:background .2s ease}
