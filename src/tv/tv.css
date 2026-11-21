@@ -4,7 +4,7 @@ html,body,#root{margin:0;width:100%;height:100%;overflow:hidden}
 body{background:var(--tv-bg);color:var(--tv-text);font-family:var(--font-sans);font-size:1rem;line-height:1.5}
 button,input{font:inherit}
 button{color:inherit;background:var(--tv-surface);border:1px solid var(--tv-border);border-radius:.6rem;padding:.5rem .95rem;min-height:2.4rem;cursor:pointer;transition:transform 200ms cubic-bezier(.22,1,.36,1),background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 200ms ease;scroll-margin:1.2rem}
-button:focus,[tabindex]:focus,input:focus{outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem;box-shadow:0 0 .9rem rgba(255,255,255,.22);position:relative;z-index:2}
+button:focus,[tabindex]:focus,input:focus{outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem;position:relative;z-index:2}
 button:focus{background:var(--tv-surface-strong);transform:scale(1.045)}
 button:disabled{opacity:.38}
 button[aria-pressed=true],button[aria-checked=true],button[aria-current=page]{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.42);color:#fff}
@@ -80,8 +80,7 @@ button:focus-visible{outline-color:var(--tv-focus)}
 .tv-hero-actions button{min-height:2.45rem;border-radius:999px;font-size:.95rem;font-weight:700;padding:0 1.45rem}
 .tv-hero-primary{background:#fff;color:#090a0f;border:0;padding:0 1.7rem}
 .tv-hero-secondary,.tv-hero-ghost{background:rgba(255,255,255,.12);color:#f5f7fa;border:1px solid rgba(255,255,255,.18)}
-.tv-hero-primary:focus{background:#fff;color:#090a0f;transform:scale(1.06);outline:.06rem solid rgba(255,255,255,.78);outline-offset:.08rem;
-  box-shadow:0 0 2rem rgba(255,255,255,.28)}
+.tv-hero-primary:focus{background:#fff;color:#090a0f;transform:scale(1.06);outline:.06rem solid rgba(255,255,255,.78);outline-offset:.08rem}
 .tv-hero-secondary:focus,.tv-hero-ghost:focus{background:rgba(255,255,255,.24);color:#fff;border-color:#fff;transform:scale(1.05);
   outline:.06rem solid rgba(255,255,255,.75);outline-offset:.08rem}
 .tv-hero-progress{display:flex;align-items:center;gap:.65rem;margin-top:.85rem;max-width:19rem}
@@ -111,9 +110,9 @@ button:focus-visible{outline-color:var(--tv-focus)}
   font-size:.92rem;font-weight:600;line-height:1.35;color:rgba(245,247,250,.92);margin:.45rem .15rem .08rem;min-height:1.35em}
 .tv-card small{display:block;margin:0 .15rem;font-size:.78rem;color:var(--tv-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-card:focus,.tv-card:focus-visible{transform:scale(1.06);z-index:6;background:transparent;
-  outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem;box-shadow:0 0 .9rem rgba(255,255,255,.22)}
+  outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem}
 .tv-card:focus .tv-card-art,.tv-card:focus-visible .tv-card-art{
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 1.2rem 2.8rem rgba(0,0,0,.72),0 0 1.6rem rgba(255,255,255,.16)}
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
 .tv-card:focus strong{color:#fff}
 
 .tv-neutral{display:flex;height:100%;align-items:center;justify-content:center;color:var(--tv-muted);font-size:.85rem}
