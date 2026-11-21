@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "HGhubTV",
-  "version": "3.1.7",
+  "version": "3.1.8",
   "identifier": "com.hghubtv.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -40,7 +40,7 @@
     ],
     "android": {
       "minSdkVersion": 24,
-      "versionCode": 3001007
+      "versionCode": 3001008
     }
   }
 }
