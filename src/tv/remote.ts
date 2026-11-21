@@ -47,8 +47,17 @@ function navigate(key: RemoteKey) {
     if (key === "right" && index % columns < columns - 1 && index + 1 < peers.length) target = index + 1;
     if (key === "up" && index >= columns) target = index - columns;
     if (key === "down" && index + columns < peers.length) target = index + columns;
-    // A short final row retains the nearest valid column.
-    if (key === "down" && target < 0 && Math.floor(index / columns) < Math.floor((peers.length - 1) / columns)) target = peers.length - 1;
+    /* 短行：按「下」要落到最后一行「同一列」。原来一律跳 peers.length-1，5 列网格
+       里第 2 列按下去会跳到第 5 张，横向位置完全对不上。
+       注意必须先判断「当前不在最后一行」——单行 region（比如详情页的四个操作按钮）
+       里 lastRowStart 就是当前行，直接算会选中自己，焦点原地不动。 */
+    if (key === "down" && target < 0 && index >= 0) {
+      const currentRow = Math.floor(index / columns), lastRow = Math.floor((peers.length - 1) / columns);
+      if (currentRow < lastRow) {
+        const sameColumn = lastRow * columns + index % columns;
+        target = sameColumn < peers.length ? sameColumn : peers.length - 1;
+      }
+    }
     // 一级导航是单列竖排：首尾要环绕，否则按到底就卡住（用户反馈的「上下不能循环」）。
     if (region?.dataset.tvRegion === "navigation" && columns === 1 && peers.length > 1) {
       if (key === "up" && index === 0) target = peers.length - 1;
@@ -56,13 +65,20 @@ function navigate(key: RemoteKey) {
     }
   }
   if (target >= 0) { focusElement(peers[target]); return; }
+  /* 几何兜底只在 region 之间选落点。原来 across*3 且不设上限，从右栏按「下」可能
+     跳到屏幕另一头的左菜单。这里收紧三处：同侧跨度不超过视口 90%、横向偏移不超过
+     视口宽 35%（竖向键）/ 视口高 50%（横向键）、权重降到 1.6。 */
   const a = active.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
   const horizontal = key === "left" || key === "right", sign = key === "left" || key === "up" ? -1 : 1;
+  const viewW = window.innerWidth, viewH = window.innerHeight;
+  const forwardLimit = (horizontal ? viewW : viewH) * .9;
+  const acrossLimit = horizontal ? viewH * .5 : viewW * .35;
   const candidates = all.filter(item => item !== active && (!region || item.closest('[data-tv-region]') !== region)).map(item => {
     const b = item.getBoundingClientRect(), dx = (b.left + b.right) / 2 - ax, dy = (b.top + b.bottom) / 2 - ay;
     const forward = (horizontal ? dx : dy) * sign, across = Math.abs(horizontal ? dy : dx);
-    return { item, forward, score: forward + across * 3 };
-  }).filter(item => item.forward > 2).sort((a, b) => a.score - b.score);
+    return { item, forward, across, score: forward + across * 1.6 };
+  }).filter(item => item.forward > 2 && item.forward < forwardLimit && item.across < acrossLimit)
+    .sort((a, b) => a.score - b.score);
   focusElement(candidates[0]?.item);
 }
 function dispatch(key: RemoteKey) {

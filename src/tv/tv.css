@@ -4,7 +4,7 @@ html,body,#root{margin:0;width:100%;height:100%;overflow:hidden}
 body{background:var(--tv-bg);color:var(--tv-text);font-family:var(--font-sans);font-size:1rem;line-height:1.5}
 button,input{font:inherit}
 button{color:inherit;background:var(--tv-surface);border:1px solid var(--tv-border);border-radius:.6rem;padding:.5rem .95rem;min-height:2.4rem;cursor:pointer;transition:transform 200ms cubic-bezier(.22,1,.36,1),background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 200ms ease;scroll-margin:1.2rem}
-button:focus,[tabindex]:focus,input:focus{outline:.15rem solid var(--tv-focus);outline-offset:.16rem;position:relative;z-index:2}
+button:focus,[tabindex]:focus,input:focus{outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem;box-shadow:0 0 .9rem rgba(255,255,255,.22);position:relative;z-index:2}
 button:focus{background:var(--tv-surface-strong);transform:scale(1.045)}
 button:disabled{opacity:.38}
 button[aria-pressed=true],button[aria-checked=true],button[aria-current=page]{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.42);color:#fff}
@@ -39,7 +39,7 @@ button:focus-visible{outline-color:var(--tv-focus)}
   color:rgba(245,247,250,.72);white-space:nowrap}
 .tv-topbar-links button svg{width:1rem;height:1rem}
 .tv-topbar-links button[aria-current="page"]{background:rgba(255,255,255,.15);color:#fff}
-.tv-topbar-links button:focus{background:#fff;color:#090a0f;outline:.14rem solid rgba(255,255,255,.9);outline-offset:.12rem;transform:scale(1.04)}
+.tv-topbar-links button:focus{background:#fff;color:#090a0f;outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem;transform:scale(1.04)}
 
 .tv-main-area{position:absolute;inset:0}
 .tv-page-scroll{position:relative;z-index:1;height:100%;overflow:auto;
@@ -52,12 +52,12 @@ button:focus-visible{outline-color:var(--tv-focus)}
 .tv-page-heading p,.tv-page-heading span{color:var(--tv-muted);font-size:.88rem}
 
 /* ============ 页面级氛围层（封面取色 + 柔光渐变） ============ */
-.tv-ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.tv-ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;contain:strict}
 .tv-ambient-image{position:absolute;inset:-14%;background-size:cover;background-position:center 24%;
-  filter:blur(76px) saturate(1.35) brightness(.36);opacity:.68;
+  filter:blur(28px) saturate(1.3) brightness(.36);opacity:.68;transform:scale(1.12);
   -webkit-mask-image:radial-gradient(ellipse 84% 74% at 72% 20%,#000 10%,rgba(0,0,0,.45) 48%,transparent 78%);
   mask-image:radial-gradient(ellipse 84% 74% at 72% 20%,#000 10%,rgba(0,0,0,.45) 48%,transparent 78%);
-  transition:background-image .45s ease}
+  transform-origin:center}
 .tv-ambient-color{position:absolute;inset:0;
   background:radial-gradient(ellipse 68% 58% at 72% 18%,rgba(120,90,62,.28) 0%,rgba(28,36,54,.2) 48%,transparent 78%);
   transition:background .6s ease}
@@ -80,10 +80,10 @@ button:focus-visible{outline-color:var(--tv-focus)}
 .tv-hero-actions button{min-height:2.45rem;border-radius:999px;font-size:.95rem;font-weight:700;padding:0 1.45rem}
 .tv-hero-primary{background:#fff;color:#090a0f;border:0;padding:0 1.7rem}
 .tv-hero-secondary,.tv-hero-ghost{background:rgba(255,255,255,.12);color:#f5f7fa;border:1px solid rgba(255,255,255,.18)}
-.tv-hero-primary:focus{background:#fff;color:#090a0f;transform:scale(1.06);outline:.15rem solid #fff;outline-offset:.18rem;
+.tv-hero-primary:focus{background:#fff;color:#090a0f;transform:scale(1.06);outline:.06rem solid rgba(255,255,255,.78);outline-offset:.08rem;
   box-shadow:0 0 2rem rgba(255,255,255,.28)}
 .tv-hero-secondary:focus,.tv-hero-ghost:focus{background:rgba(255,255,255,.24);color:#fff;border-color:#fff;transform:scale(1.05);
-  outline:.15rem solid #fff;outline-offset:.16rem}
+  outline:.06rem solid rgba(255,255,255,.75);outline-offset:.08rem}
 .tv-hero-progress{display:flex;align-items:center;gap:.65rem;margin-top:.85rem;max-width:19rem}
 .tv-hero-progress>span{flex:1;height:.2rem;border-radius:.1rem;background:rgba(255,255,255,.2);overflow:hidden}
 .tv-hero-progress>span>i{display:block;height:100%;border-radius:.1rem;background:var(--tv-accent)}
@@ -102,18 +102,21 @@ button:focus-visible{outline-color:var(--tv-focus)}
 .tv-shelf-track::-webkit-scrollbar{display:none}
 .tv-shelf-track .tv-card{flex:0 0 7.2rem}
 
-.tv-card{padding:0;border:0;background:transparent;text-align:left;min-width:0;display:block;width:100%;border-radius:.68rem}
+.tv-card{padding:0;border:0;background:transparent;text-align:left;min-width:0;display:block;width:100%;border-radius:.68rem;
+  backface-visibility:hidden}
 .tv-card-art{height:10.4rem;border-radius:.68rem;overflow:hidden;position:relative;
-  background:linear-gradient(145deg,#191d28,#101219);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 .7rem 1.8rem rgba(0,0,0,.46)}
+  background:linear-gradient(145deg,#191d28,#101219);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  /* 外阴影只在焦点卡片上画：非焦点卡片不需要，省掉 30+ 次大面积模糊重绘 */
+  contain:layout paint}
 .tv-card-art img{width:100%;height:100%;object-fit:cover}
 .tv-card-wide .tv-card-art{height:6.8rem}
 .tv-card strong,.tv-card-title{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
   font-size:.92rem;font-weight:600;line-height:1.35;color:rgba(245,247,250,.92);margin:.45rem .15rem .08rem;min-height:1.35em}
 .tv-card small{display:block;margin:0 .15rem;font-size:.78rem;color:var(--tv-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-card:focus,.tv-card:focus-visible{transform:scale(1.06);z-index:6;background:transparent;
-  outline:.15rem solid var(--tv-focus);outline-offset:.16rem}
+  outline:.06rem solid rgba(255,255,255,.72);outline-offset:.08rem;box-shadow:0 0 .9rem rgba(255,255,255,.22)}
 .tv-card:focus .tv-card-art,.tv-card:focus-visible .tv-card-art{
-  box-shadow:0 1.2rem 2.8rem rgba(0,0,0,.72),0 0 1.6rem rgba(255,255,255,.16)}
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 1.2rem 2.8rem rgba(0,0,0,.72),0 0 1.6rem rgba(255,255,255,.16)}
 .tv-card:focus strong{color:#fff}
 
 .tv-neutral{display:flex;height:100%;align-items:center;justify-content:center;color:var(--tv-muted);font-size:.85rem}
@@ -231,7 +234,7 @@ button:focus-visible{outline-color:var(--tv-focus)}
   font-size:.9rem;font-weight:700;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1)}
 .tv-detail-route .tv-detail-actions button.tv-primary{background:#fff;color:#090a0f;border-color:#fff}
 .tv-detail-route .tv-detail-actions button:focus{background:rgba(255,255,255,.22);color:#fff;transform:scale(1.05);
-  outline:.15rem solid #fff;outline-offset:.14rem}
+  outline:.06rem solid rgba(255,255,255,.75);outline-offset:.08rem}
 .tv-detail-route .tv-detail-actions button.tv-primary:focus{background:#fff;color:#090a0f}
 .tv-detail-route .tv-detail-episode-grid{grid-template-columns:repeat(8,minmax(0,1fr));gap:.55rem}
 /* 相关推荐：与首页货架同一套卡片规格，但只在详情页末尾出现，底部留出安全边距。 */
@@ -243,7 +246,7 @@ button:focus-visible{outline-color:var(--tv-focus)}
 .tv-detail-route .tv-detail-episode-grid button{min-height:2.55rem;text-align:center;border-radius:.55rem;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums}
 .tv-detail-route .tv-detail-episode-grid button[aria-pressed="true"]{background:#fff;color:#090a0f;border-color:#fff}
-.tv-detail-route .tv-detail-episode-grid button:focus{background:#fff;color:#090a0f;transform:scale(1.06);outline:.15rem solid #fff}
+.tv-detail-route .tv-detail-episode-grid button:focus{background:#fff;color:#090a0f;transform:scale(1.06);outline:.06rem solid rgba(255,255,255,.75);outline-offset:.06rem}
 
 /* ============ 播放页黑边氛围填充 ============ */
 .tv-player-fill{position:absolute;inset:0;z-index:0;display:flex;justify-content:space-between;overflow:hidden;pointer-events:none}
