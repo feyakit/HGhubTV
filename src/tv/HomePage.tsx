@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, cover, fmtTime } from "../api";
 import { useContentPreferences } from "../contentPreferences";
 import { contentKey, type TvContent } from "./model";
@@ -10,6 +10,9 @@ export default function HomePage({ onOpen, onPlay, active = true }: { onOpen: (c
   const { source, sourceKey, library } = useTv(), { blockReason, revision } = useContentPreferences();
   const [rows, setRows] = useState<{title:string;items:TvContent[]}[]>([]), [error,setError] = useState(""), [busy,setBusy] = useState(true), [retry,setRetry] = useState(0);
   const [ambientCover, setAmbientCover] = useState<string | undefined>(undefined);
+  /* 稳定引用：TvCard 已经 memo 化，onFocus 若每次渲染新建会让 memo 失效，
+     每按一次方向键 35 张卡都要重新渲染。 */
+  const handleCardFocus = useCallback((c: TvContent) => setAmbientCover(c.cover), []);
   const fulfilled = useRef("");
   const identity = `${sourceKey}:${retry}:${revision}`;
   useEffect(() => {
@@ -119,7 +122,7 @@ export default function HomePage({ onOpen, onPlay, active = true }: { onOpen: (c
       const visible = row.items.filter(content => !blockReason(content.tags));
       if (!visible.length) return null;
       return <section className="tv-shelf" key={row.title}><h2>{row.title}</h2><div className="tv-shelf-track" data-tv-region={`home-${row.title}`} data-tv-scroll-id={`home-${row.title}`}>
-        {visible.map((content, index) => <TvCard key={contentKey(content)} content={content} onOpen={onOpen} onFocus={c => setAmbientCover(c.cover)} eager={rowIndex === 0 && index < 8} />)}
+        {visible.map((content, index) => <TvCard key={contentKey(content)} content={content} onOpen={onOpen} onFocus={handleCardFocus} eager={rowIndex === 0 && index < 8} />)}
       </div></section>;
     })}
   </>;

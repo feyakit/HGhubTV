@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { memo, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cover } from "../api";
 import { useContentPreferences } from "../contentPreferences";
 import { useCoverPalette } from "./colorExtract";
@@ -22,7 +22,7 @@ export function TvAmbient({ src }: { src?: string | null }) {
   );
 }
 
-export function TvCard({ content, onOpen, onFocus, placeholder = false, progress, wide = false, eager = false }: { content: TvContent; onOpen: (content: TvContent) => void; onFocus?: (content: TvContent) => void; placeholder?: boolean; progress?: { part: string; seconds: number; duration: number }; wide?: boolean; eager?: boolean }) {
+export const TvCard = memo(function TvCard({ content, onOpen, onFocus, placeholder = false, progress, wide = false, eager = false }: { content: TvContent; onOpen: (content: TvContent) => void; onFocus?: (content: TvContent) => void; placeholder?: boolean; progress?: { part: string; seconds: number; duration: number }; wide?: boolean; eager?: boolean }) {
   const { blockReason } = useContentPreferences();
   const blocked = blockReason(content.tags);
   if (blocked && !placeholder) return null;
@@ -41,7 +41,7 @@ export function TvCard({ content, onOpen, onFocus, placeholder = false, progress
       )}</div>
     <strong>{blocked ? "已屏蔽的内容" : content.title}</strong><small>{blocked ? "记录已保留" : content.kind === "post" ? "吃瓜视频" : content.episodeCount ? `${content.episodeCount} 集` : "查看详情"}</small>
   </button>;
-}
+});
 export function TvModal({ id, title, onClose, children }: { id: string; title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {

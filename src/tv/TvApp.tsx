@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { IHome, IGrid, ISearch, IStar, ISettings, Logo } from "../icons";
 import { useContentPreferences } from "../contentPreferences";
@@ -72,7 +72,10 @@ export default function TvApp(){
     exitTimer.current=window.setTimeout(()=>{setExitArmed(false);exitTimer.current=undefined;},2500);
   };
   useRemoteScope({id:"app",priority:0,onKey:key=>{if(key==="back"){back();return true;}}});
-  const open=(content:TvContent)=>{clearExit();rememberFocus(page);setStack(s=>[...s,{kind:"detail",content}]);};
+  /* 用 ref 转发，保证 open 的引用永远不变——它是 TvCard 的 prop，变了 memo 就白加。 */
+  const openRef=useRef<(content:TvContent)=>void>(()=>{});
+  openRef.current=(content:TvContent)=>{clearExit();rememberFocus(page);setStack(s=>[...s,{kind:"detail",content}]);};
+  const open=useCallback((content:TvContent)=>openRef.current(content),[]);;
   /* Hero 的「播放」要真的开播，不能只弹详情页——用户按播放看到简介页会以为是坏了 */
   const playDirect=(content:TvContent,part="1",seconds=0)=>{clearExit();rememberFocus(page);setStack(s=>[...s,{kind:"player",content,part,seconds}]);};
   const navigate=(next:Tab,keepFocusOnNav=true)=>{clearExit();rememberFocus(page);keepNav.current=keepFocusOnNav;
