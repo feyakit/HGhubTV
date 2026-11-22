@@ -248,6 +248,28 @@ fn image_kind(buf: &[u8]) -> Option<&'static str> {
     None
 }
 
+/// 封面在交给 WebView 之前先缩到 480 宽。站点原图常是 1080p，一屏三十多张时
+/// 纹理上传和采样会把弱 GPU（投影仪 Mali-G52 之类）的带宽吃满，而十英尺界面
+/// 480 宽（2:3 海报约 480×720）已经超过实际显示尺寸。
+const COVER_MAX_W: u32 = 480;
+
+fn shrink_image(bytes: Vec<u8>) -> Vec<u8> {
+    let Ok(img) = image::load_from_memory(&bytes) else {
+        return bytes;
+    };
+    if img.width() <= COVER_MAX_W {
+        return bytes;
+    }
+    let h = ((img.height() as f64) * (COVER_MAX_W as f64) / (img.width() as f64)).round().max(1.0) as u32;
+    let resized = img.resize_exact(COVER_MAX_W, h, image::imageops::FilterType::Triangle);
+    let mut out = Vec::new();
+    let mut cursor = std::io::Cursor::new(&mut out);
+    match resized.write_to(&mut cursor, image::ImageFormat::Jpeg) {
+        Ok(()) => out,
+        Err(_) => bytes,
+    }
+}
+
 /// 取封面：命中缓存直接返回；同地址的进行中请求共享下载和解密结果。
 pub async fn load_image(url: &str) -> ImageResult {
     let generation = {
@@ -286,6 +308,7 @@ async fn download_image(url: &str, generation: u64) -> ImageResult {
         let dec = aes_cbc_decrypt(&bytes).ok_or_else(|| "封面解密失败".to_string())?;
         strip_padding(dec)
     };
+    let plain = shrink_image(plain);
     let kind = image_kind(&plain).unwrap_or("image/jpeg").to_string();
     let arc = Arc::new(plain);
     let mut cache = IMG_CACHE.lock().unwrap();
